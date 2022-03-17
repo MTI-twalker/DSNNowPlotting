@@ -1,0 +1,392 @@
+<!--
+    Notes:
+        - Drop down menus automatically select CUSP if nothing is selected and it exists in the dropdown
+        - Data first has to grab dropdown menus. 
+    
+    Author: Timothy Walker twalker@mti-systems.com
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />    
+    <script src="packages/jquery-3.6.0.min.js"></script>
+    <script src="packages/jquery-ui-1.13.1.custom/jquery-ui.min.js"></script>
+    <script src="packages/apexCharts/apexcharts.js"></script>
+    <link href="./packages/apexCharts/samples/assets/styles.css" rel="stylesheet" />
+    <link href="./packages/jquery-ui-1.13.1.custom/jquery-ui.min.css" rel="stylesheet" />
+    <link href="./packages/webscrapescript.css" rel="stylesheet" />
+</head>
+<script>
+    var lastDate = new Date().getTime() / 1000;
+    var TICKINTERVAL = 5000;
+    let XAXISRANGE = 60000; // 60000 for 1 mins start
+    let XAXISMAX = 2400000; // 2400000 for 40 mins max
+    var chart_data_list = [];
+    var chart_data = [];
+    var downSignal_spacecrafts = [];
+    var upSignal_spacecrafts = [];
+    var target_spacecrafts = [];
+    var downSignal_mnemonics_map = [];
+    var downSignal_mnemonics = [];
+    var upSignal_mnemonics_map = [];
+    var upSignal_mnemonics = [];
+    var target_mnemonics_map = [];
+    var target_mnemonics = [];
+
+    function createNewWidget(){
+        var chartCount = $('.chartCls').length ? $('.chartCls').length : 0;
+        var newChartId = "chart" + chartCount;
+        var options = {
+            series: [],
+            chart: {
+                id: newChartId,
+                height: 350,
+                type: 'line',
+                animations: {
+                    enabled: false,
+                    easing: 'linear'
+                },
+                toolbar: {
+                    show: true
+                },
+                zoom: {
+                    enabled: false
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            title: {
+                text: 'DSN Power Chart',
+                align: 'left'
+            },
+            markers: {
+                size: 0
+            },
+            xaxis: {
+                type: 'datetime',
+                range: XAXISRANGE,
+            },
+            yaxis: {
+
+            },
+            legend: {
+                show: true
+            },         
+        };
+
+        var newDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'widgetCls')
+            .attr('data-chartid', newChartId)
+            .appendTo($('body'));
+        var newMenuDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'menuCls')
+            .appendTo(newDiv);      
+        var newBtnDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'buttonDivCls')
+            .appendTo(newMenuDiv);           
+        //add item button
+        var newBtn = $('<button/>')
+            .uniqueId()
+            .attr('class', 'buttonCls')
+            .attr('onclick', 'addItem(event);')
+            .html('Add Item')
+            .appendTo(newBtnDiv);
+
+        //Add intial selection menu
+        var newSelDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'selectCls')
+            .appendTo(newMenuDiv);  
+        //signal type      
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);
+        var signalTypes = ['Select Signal Type','downSignal', 'upSignal', 'target']
+        $(signalTypes).each(function(i){$('<option/>').val(i).text(signalTypes[i]).appendTo(newSel)});        
+        //spacecraft      
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);          
+        //mnemonic
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);    
+
+        //add new chart
+        var newChart = $('<div/>')
+            .uniqueId()
+            .attr('class','chartCls')
+            .appendTo(newDiv)
+        var chart = new ApexCharts(document.querySelector("#"+newChart.attr('id')), options);
+        chart.render();
+        chart_data_list[newChartId] = [];
+        //if(chartCount > 0){$('.widgetCls').css("width", "49%");} //this is an optional addition if a side by side chart is wanted
+    }
+    function refreshChartData() {
+        var newDate = new Date().getTime();
+        lastDate = newDate      
+        //get data from dsn and populate a dictionary for data
+        $.get('https://eyes.nasa.gov/dsn/data/dsn.xml', function (data) {
+            //for each chart
+            $('.chartCls').each(function(chart_idx){
+                //for each select in chart
+                var curChart = $(this).children().first();
+                var data_dict = [];
+                let date_data;
+                let cur_range = 0;
+                let chart_range = 0;
+                $(this).parent().find('.selectCls').each(function(select_div_idx){
+                    var curSelectDiv = $(this);
+                    chart_data = chart_data_list["chart" + chart_idx][select_div_idx] ? chart_data_list["chart" + chart_idx][select_div_idx]['data'] : [];
+                    //each selectCls has 3 select elements of [signal type, spacecraft, mnemonic]
+                    $(data.children.item(0).children).each(function (dish_idx) {
+                        if ($(this)[0].tagName == 'dish') {
+                            var dishTag = $(this)[0];
+                            $(dishTag.children).each(function (dish_idx) {   
+                                //get menu data
+                                if (dishTag.children[dish_idx].tagName == 'downSignal') {
+                                    downSignal_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value);
+                                    if (downSignal_mnemonics_map.length < 2) downSignal_mnemonics_map.push(dishTag.children[dish_idx].attributes);
+                                } else if (dishTag.children[dish_idx].tagName == 'upSignal') {
+                                    upSignal_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value)
+                                    if (upSignal_mnemonics_map.length < 2) upSignal_mnemonics_map.push(dishTag.children[dish_idx].attributes);
+                                } else if (dishTag.children[dish_idx].tagName == 'target') {
+                                    target_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('name').value)
+                                    if (target_mnemonics_map.length < 2) target_mnemonics_map.push(dishTag.children[dish_idx].attributes);
+                                }       
+                                //get chart data                                                        
+                                try {
+                                    if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'downSignal' || dishTag.children[dish_idx].tagName == 'upSignal')) {
+                                        if (dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value == curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()) {
+                                            chart_data.push({
+                                                x: newDate,
+                                                y: dishTag.children[dish_idx].attributes.getNamedItem(curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()).value
+                                            })
+                                        }
+                                    } else if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'target')) {
+                                        if (dishTag.children[dish_idx].attributes.getNamedItem('name').value == curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()) {
+                                            chart_data.push({
+                                                x: newDate,
+                                                y: dishTag.children[dish_idx].attributes.getNamedItem(curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()).value
+                                            })
+                                        }                                        
+                                    }
+                                } catch (error) {
+                                    console.log("Chart: " + curChart.attr('id') + " has an issue with the selection: " + curSelectDiv.attr('id'));
+                                }  
+                            });
+                        }
+                    });  
+                    chart_data = chart_data.length > 0 ? chart_data.filter(x => (x['x'] > chart_data[chart_data.length - 1]['x'] - XAXISMAX)) : [];
+                    date_data = chart_data.map(({ x }) => x);
+                    cur_range = chart_data.length > 0 ? (Math.max(...date_data) - Math.min(...date_data)) > 60000 ? (Math.floor(Math.max(...date_data) - Math.min(...date_data)) / 60000) : 1 : 1;
+                    console.log(Math.floor((Math.max(...date_data) - Math.min(...date_data))/60000));               
+                    chart_range = cur_range > chart_range ? cur_range : chart_range
+                    //update chart data list
+                    chart_data_list["chart" + chart_idx][select_div_idx] = {
+                        name: curSelectDiv.children('.selectmenus:nth-child(1)').find('option:selected').text() + ':' + curSelectDiv.children('.selectmenus:nth-child(2)').find('option:selected').text() + ":" + curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text(), //signal type, spacescraft, mnemonic selected
+                        type: 'line',
+                        data: chart_data
+                    }
+                });                 
+                ApexCharts.exec("chart" + chart_idx, 'updateSeries', chart_data_list["chart" + chart_idx]);
+                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({xaxis: {range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX}}));                                    
+            });        
+        });             
+        //Dropdown menu logic
+        downSignal_spacecrafts = unique(downSignal_spacecrafts);
+        upSignal_spacecrafts = unique(upSignal_spacecrafts);
+        target_spacecrafts = unique(target_spacecrafts);
+        downSignal_mnemonics = unique(downSignal_mnemonics_map[0]);
+        upSignal_mnemonics = unique(upSignal_mnemonics_map[0]);
+        target_mnemonics = unique(target_mnemonics_map[0]);        
+        $(".selectCls").each(function(i){
+            var signalTypeSel = $(this).children('.selectmenus:nth-child(1)').find('option:selected').text();
+            var spacecraftDropDown = $(this).children('.selectmenus:nth-child(2)');
+            var mnemonicDropDown = $(this).children('.selectmenus:nth-child(3)');
+            //save selection temp
+            var temp_spacecraft = spacecraftDropDown.find('option:selected').text();
+            var temp_mnemonic = mnemonicDropDown.find('option:selected').text();
+            //remove all options
+            spacecraftDropDown.find('option').remove();
+            mnemonicDropDown.find('option').remove();
+            //add default selection
+            $('<option>')
+                .val('')
+                .text('Select Spacecraft')
+                .appendTo(spacecraftDropDown);
+            $('<option>')
+                .val('')
+                .text('Select Mnemonic')
+                .appendTo(mnemonicDropDown);          
+            //add data to dropdowns if they exist
+            if (signalTypeSel == 'downSignal' && downSignal_spacecrafts.length) {
+                $(downSignal_spacecrafts).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(downSignal_spacecrafts[i])
+                        .appendTo(spacecraftDropDown);
+                });
+                $(downSignal_mnemonics).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(downSignal_mnemonics[i].nodeName)
+                        .appendTo(mnemonicDropDown);
+                });                
+            } else if (signalTypeSel == 'upSignal' && upSignal_spacecrafts.length) {
+                $(upSignal_spacecrafts).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(upSignal_spacecrafts[i])
+                        .appendTo(spacecraftDropDown);
+                });    
+                $(upSignal_mnemonics).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(upSignal_mnemonics[i].nodeName)
+                        .appendTo(mnemonicDropDown);
+                });                                 
+            } else if (signalTypeSel == 'target' && target_spacecrafts.length) {
+                $(target_spacecrafts).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(target_spacecrafts[i])
+                        .appendTo(spacecraftDropDown);
+                });   
+                $(target_mnemonics).each(function (i) {
+                    $('<option>')
+                        .val(i)
+                        .text(target_mnemonics[i].nodeName)
+                        .appendTo(mnemonicDropDown);
+                });                    
+            } else if (signalTypeSel == 'Select Signal Type') {
+                $('<option>')
+                    .val('')
+                    .text('Awaiting signal type')
+                    .appendTo(spacecraftDropDown);
+                $('<option>')
+                    .val('')
+                    .text('Awaiting signal type')
+                    .appendTo(mnemonicDropDown);                    
+            } else {
+                $('<option>')
+                    .val('')
+                    .text('Loading...')
+                    .appendTo(spacecraftDropDown);
+                $('<option>')
+                    .val('')
+                    .text('Loading...')
+                    .appendTo(mnemonicDropDown);                    
+            }   
+            //Restore saved selection as well as default to CUSP if nothing selected
+            if (temp_spacecraft == "Select Spacecraft") {
+                spacecraftDropDown.find("option").filter(function () { return $(this).html() == 'CUSP'; }).attr('selected', 'selected')
+            } else {
+                spacecraftDropDown.find("option").filter(function () { return $(this).html() == temp_spacecraft; }).attr('selected', 'selected')
+            }
+            mnemonicDropDown.find("option").filter(function () { return $(this).html() == temp_mnemonic; }).attr('selected', 'selected')
+        })
+
+    }
+    function addItem(event){
+        var menuDiv = $(event.target).parent().parent();
+        //Add intial selection menu
+        var newSelDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'selectCls')
+            .appendTo(menuDiv);
+        //signal type      
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);
+        var signalTypes = ['Select Signal Type', 'downSignal', 'upSignal', 'target']
+        $(signalTypes).each(function (i) { $('<option/>').val(i).text(signalTypes[i]).appendTo(newSel) });
+        //spacecraft      
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);
+        //mnemonic
+        var newSel = $('<select/>')
+            .uniqueId()
+            .attr('class', 'selectmenus')
+            .appendTo(newSelDiv);           
+        //remove button    
+        var removeBtn = $('<button/>')
+            .uniqueId()
+            .html('&#128473;')
+            .attr('class', 'removeBtn')
+            .appendTo(newSelDiv); 
+
+        refreshChartData();     
+    }
+    function unique(list) {
+            var result = [];
+            $.each(list, function (i, e) {
+                if ($.inArray(e, result) == -1) result.push(e);
+            });
+            return result;
+        }
+</script>
+<body>
+    <div class="headerCls">
+    <button onclick="refreshChartData();" class="refreshBtnCls" >&#x21bb;</button>
+    <div class="dataRateDivCls">
+        <label for="datarate">Set Data Rate (seconds):</label>
+        <input id="datarate" style="text-align: center;" min="1" type="number" value='1' />
+    </div>
+    <button onclick="createNewWidget();" class="newChartBtnCls"><span>Add new Chart</span></button>
+    </div>
+    <script>
+        var intervalId;
+        $(function () {
+            createNewWidget();
+            refreshChartData();
+        });
+        //reset data if there is a change to the select menus
+        $("body").on('change', ".selectmenus", function () {
+            var selectedSelIdx = $(this).parent().index() - 1;
+            var selectedChartId = $(this).parent().parent().parent().attr("data-chartId");
+            chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];
+            refreshChartData();
+        });
+        //remove select menu if X clicked
+        $("body").on('click', ".removeBtn", function () {
+            var selectedSel = $(this).parent()
+            var selectedSelIdx = selectedSel.index() - 1;
+            var selectedChartId = selectedSel.parent().parent().attr("data-chartId");
+            chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];            
+            var selectedSel = selectedSel.remove();
+            refreshChartData();
+        });   
+        function startInterval(_interval){
+            intervalId = window.setInterval(function () {
+                refreshChartData();
+            }, _interval);
+            refreshChartData();
+        }
+        startInterval(1000);
+
+        $('#datarate').on('change', function () {
+            // clear the existing interval
+            clearInterval(intervalId);
+            // just start a new one
+            startInterval($('#datarate').val()*1000);
+        })        
+
+    </script>
+</body>
+</html>
