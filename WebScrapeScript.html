@@ -238,7 +238,7 @@
                     }
                 });
                 ApexCharts.exec("chart" + chart_idx, 'updateSeries', chart_data_list["chart" + chart_idx]);
-                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ xaxis: { range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX } }, false, false, false));
+                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ xaxis: { range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX } }));
                 //update y axis min if blank
                 yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
                 $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][0]);

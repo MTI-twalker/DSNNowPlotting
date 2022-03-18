@@ -49,9 +49,11 @@
 
 ## On-going effort
 
-### Selecting the station
-    The station in the data is not encapsulated. They just appended the data to the list. So as far as a dictionary goes its not even defined by station. 
-    In the data, they terminate the station immediately instead of providing a </station> at the end of the last </dish>. Why? I have no idea. I may be able to get creative here though.
+### Separating by dish
+    The data should be separated by dish
 
 ### signalTypeDebug
     The signalTypeDebug field seems to have 4 separate status indicators. It would be very helpful to have the first couple displayed. 
+
+### Filter options
+    The values of an empty string and TEST from the dropdown menu options of spacecraft/target name should be filtered out.
