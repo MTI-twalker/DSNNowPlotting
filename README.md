@@ -19,10 +19,13 @@
 **Add new chart**: 
     Press the "Add new chart" button to add a new chart to the page. By default 1 chart will be pre-loaded.
 **Data Rate**: 
-    The data rate by default is polling the site every second. You can change the number in the number box which will reflect in the charts (in seconds). Minimum of 1 second.
+    The data rate by default is polling the site every 5 seconds. You can change the number in the number box which will reflect in the charts (in seconds). Minimum of 1 second.
 ### Chart View
 **Add Item**: 
     Press the "Add Item" button in order to add a new value to be plotted to the graph. A dropdown menu by default is provided to add the first item. Additional items will populate with a "X" button to remove the item from the chart.
+**Y Min/Y Max**:
+    The Y min and Y max input field will auto populate with the tallest view possible that the data in the chart has. This is calculated with the min/max values. You can statically set each of these values by entering the number into the respective input. This will adjust the chart range automatically.
+    You can "unset" these static values by clearing the field and the chart will go back into "auto" mode for that respective input. 
 
 #### Dropdown Menus
 **Signal Type**: 
@@ -36,11 +39,9 @@
 
 #### Saving Data
 
-    Data can be downloaded from the graph by selecting the top right of the chart. This is through the ApexCharts toolbar. 
-    The options are:
-        Download PNG
-        Download SVG
-        Download CSV
+    Pressing the "Download CSV" at the bottom right will loop through each item on each chart and create a CSV file with the data as an ISO string and mnemonic value listed in csv format.
+
+    Note: The browser will likely prompt the user to approve "multiple file download" so you will have to "allow" that to happen if you want all the data. Otherwise, you will just download the first file.
 
 #### Replotting the data
 
@@ -48,8 +49,9 @@
 
 ## On-going effort
 
-### Time format in the csv download
-    The csv does not export the time correctly
+### Selecting the station
+    The station in the data is not encapsulated. They just appended the data to the list. So as far as a dictionary goes its not even defined by station. 
+    In the data, they terminate the station immediately instead of providing a </station> at the end of the last </dish>. Why? I have no idea. I may be able to get creative here though.
 
-### yaxis scale setting 
-    The Y axis scale is auto populated by the chart. Input fields are needed to provide min/max values for the chart.
+### signalTypeDebug
+    The signalTypeDebug field seems to have 4 separate status indicators. It would be very helpful to have the first couple displayed. 

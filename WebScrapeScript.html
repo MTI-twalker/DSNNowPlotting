@@ -3,14 +3,15 @@
         - Drop down menus automatically select CUSP if nothing is selected and it exists in the dropdown
         - Data first has to grab dropdown menus. 
     
-    Author: Timothy Walker twalker@mti-systems.com
+    Author: Timothy Walker timothy.walker@nasa.gov
 -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />    
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <script src="packages/jquery-3.6.0.min.js"></script>
     <script src="packages/jquery-ui-1.13.1.custom/jquery-ui.min.js"></script>
     <script src="packages/apexCharts/apexcharts.js"></script>
@@ -19,11 +20,11 @@
     <link href="./packages/webscrapescript.css" rel="stylesheet" />
 </head>
 <script>
-    var lastDate = new Date().getTime() / 1000;
     var TICKINTERVAL = 5000;
     let XAXISRANGE = 60000; // 60000 for 1 mins start
     let XAXISMAX = 2400000; // 2400000 for 40 mins max
     var chart_data_list = [];
+    var yaxis_data_list = [];
     var chart_data = [];
     var downSignal_spacecrafts = [];
     var upSignal_spacecrafts = [];
@@ -35,9 +36,11 @@
     var target_mnemonics_map = [];
     var target_mnemonics = [];
 
-    function createNewWidget(){
+    function createNewWidget() {
         var chartCount = $('.chartCls').length ? $('.chartCls').length : 0;
         var newChartId = "chart" + chartCount;
+        chart_data_list[newChartId] = [];
+        yaxis_data_list[newChartId] = [];
         var options = {
             series: [],
             chart: {
@@ -49,11 +52,28 @@
                     easing: 'linear'
                 },
                 toolbar: {
-                    show: true
+                    show: true,
+                    export: {
+                        csv: {
+                            filename: undefined,
+                            columnDelimiter: ',',
+                            headerCategory: 'category',
+                            headerValue: 'value',
+                            dateFormatter(timestamp) {
+                                return new Date(timestamp).toISOString()
+                            }
+                        },
+                        svg: {
+                            filename: undefined,
+                        },
+                        png: {
+                            filename: undefined,
+                        }
+                    },
                 },
                 zoom: {
                     enabled: false
-                }
+                },
             },
             dataLabels: {
                 enabled: false
@@ -72,12 +92,9 @@
                 type: 'datetime',
                 range: XAXISRANGE,
             },
-            yaxis: {
-
-            },
             legend: {
                 show: true
-            },         
+            },
         };
 
         var newDiv = $('<div/>')
@@ -88,73 +105,90 @@
         var newMenuDiv = $('<div/>')
             .uniqueId()
             .attr('class', 'menuCls')
-            .appendTo(newDiv);      
+            .appendTo(newDiv);
+
+        //add item button
         var newBtnDiv = $('<div/>')
             .uniqueId()
             .attr('class', 'buttonDivCls')
-            .appendTo(newMenuDiv);           
-        //add item button
+            .appendTo(newMenuDiv);
         var newBtn = $('<button/>')
             .uniqueId()
             .attr('class', 'buttonCls')
             .attr('onclick', 'addItem(event);')
             .html('Add Item')
             .appendTo(newBtnDiv);
-
+        //add y-axis selector
+        var newYaxisDiv = $('<div/>')
+            .uniqueId()
+            .attr('class', 'yaxisDivCls')
+            .appendTo(newMenuDiv);
+        var newYaxisMin = $('<input/>')
+            .uniqueId()
+            .attr('type', 'number')
+            .attr('placeholder', 'Y-axis Min')
+            .attr('class', 'yaxisInputCls')
+            .appendTo(newYaxisDiv);
+        var newYaxisMax = $('<input/>')
+            .uniqueId()
+            .attr('type', 'number')
+            .attr('placeholder', 'Y-axis Max')
+            .attr('class', 'yaxisInputCls')
+            .appendTo(newYaxisDiv);
         //Add intial selection menu
         var newSelDiv = $('<div/>')
             .uniqueId()
             .attr('class', 'selectCls')
-            .appendTo(newMenuDiv);  
+            .appendTo(newMenuDiv);
         //signal type      
         var newSel = $('<select/>')
             .uniqueId()
             .attr('class', 'selectmenus')
             .appendTo(newSelDiv);
-        var signalTypes = ['Select Signal Type','downSignal', 'upSignal', 'target']
-        $(signalTypes).each(function(i){$('<option/>').val(i).text(signalTypes[i]).appendTo(newSel)});        
+        var signalTypes = ['Select Signal Type', 'downSignal', 'upSignal', 'target']
+        $(signalTypes).each(function (i) { $('<option/>').val(i).text(signalTypes[i]).appendTo(newSel) });
         //spacecraft      
         var newSel = $('<select/>')
             .uniqueId()
             .attr('class', 'selectmenus')
-            .appendTo(newSelDiv);          
+            .appendTo(newSelDiv);
         //mnemonic
         var newSel = $('<select/>')
             .uniqueId()
             .attr('class', 'selectmenus')
-            .appendTo(newSelDiv);    
+            .appendTo(newSelDiv);
 
         //add new chart
         var newChart = $('<div/>')
             .uniqueId()
-            .attr('class','chartCls')
+            .attr('class', 'chartCls')
             .appendTo(newDiv)
-        var chart = new ApexCharts(document.querySelector("#"+newChart.attr('id')), options);
+        var chart = new ApexCharts(document.querySelector("#" + newChart.attr('id')), options);
         chart.render();
-        chart_data_list[newChartId] = [];
-        //if(chartCount > 0){$('.widgetCls').css("width", "49%");} //this is an optional addition if a side by side chart is wanted
+        //if(chartCount > 0){$('.widgetCls').css("width", "49%");}
     }
     function refreshChartData() {
         var newDate = new Date().getTime();
-        lastDate = newDate      
         //get data from dsn and populate a dictionary for data
         $.get('https://eyes.nasa.gov/dsn/data/dsn.xml', function (data) {
             //for each chart
-            $('.chartCls').each(function(chart_idx){
+            $('.chartCls').each(function (chart_idx) {
                 //for each select in chart
                 var curChart = $(this).children().first();
                 var data_dict = [];
                 let date_data;
                 let cur_range = 0;
                 let chart_range = 0;
-                $(this).parent().find('.selectCls').each(function(select_div_idx){
+                let mnemonicMin = '';
+                let mnemonicMax = '';
+                $(this).parent().find('.selectCls').each(function (select_div_idx) {
                     var curSelectDiv = $(this);
                     chart_data = chart_data_list["chart" + chart_idx][select_div_idx] ? chart_data_list["chart" + chart_idx][select_div_idx]['data'] : [];
                     //each selectCls has 3 select elements of [signal type, spacecraft, mnemonic]
                     $(data.children.item(0).children).each(function (dish_idx) {
                         if ($(this)[0].tagName == 'dish') {
                             var dishTag = $(this)[0];
-                            $(dishTag.children).each(function (dish_idx) {   
+                            $(dishTag.children).each(function (dish_idx) {
                                 //get menu data
                                 if (dishTag.children[dish_idx].tagName == 'downSignal') {
                                     downSignal_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value);
@@ -165,7 +199,7 @@
                                 } else if (dishTag.children[dish_idx].tagName == 'target') {
                                     target_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('name').value)
                                     if (target_mnemonics_map.length < 2) target_mnemonics_map.push(dishTag.children[dish_idx].attributes);
-                                }       
+                                }
                                 //get chart data                                                        
                                 try {
                                     if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'downSignal' || dishTag.children[dish_idx].tagName == 'upSignal')) {
@@ -181,18 +215,20 @@
                                                 x: newDate,
                                                 y: dishTag.children[dish_idx].attributes.getNamedItem(curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()).value
                                             })
-                                        }                                        
+                                        }
                                     }
                                 } catch (error) {
                                     console.log("Chart: " + curChart.attr('id') + " has an issue with the selection: " + curSelectDiv.attr('id'));
-                                }  
+                                }
                             });
                         }
-                    });  
+                    });
                     chart_data = chart_data.length > 0 ? chart_data.filter(x => (x['x'] > chart_data[chart_data.length - 1]['x'] - XAXISMAX)) : [];
                     date_data = chart_data.map(({ x }) => x);
+                    mnemonic_data = chart_data.map(({ y }) => y);
+                    mnemonicMin = mnemonicMin == '' ? Math.min(...mnemonic_data) : Math.min(...mnemonic_data) < mnemonicMin ? Math.min(...mnemonic_data) : mnemonicMin;
+                    mnemonicMax = mnemonicMax == '' ? Math.max(...mnemonic_data) : Math.max(...mnemonic_data) > mnemonicMax ? Math.max(...mnemonic_data) : mnemonicMax;
                     cur_range = chart_data.length > 0 ? (Math.max(...date_data) - Math.min(...date_data)) > 60000 ? (Math.floor(Math.max(...date_data) - Math.min(...date_data)) / 60000) : 1 : 1;
-                    console.log(Math.floor((Math.max(...date_data) - Math.min(...date_data))/60000));               
                     chart_range = cur_range > chart_range ? cur_range : chart_range
                     //update chart data list
                     chart_data_list["chart" + chart_idx][select_div_idx] = {
@@ -200,19 +236,26 @@
                         type: 'line',
                         data: chart_data
                     }
-                });                 
+                });
                 ApexCharts.exec("chart" + chart_idx, 'updateSeries', chart_data_list["chart" + chart_idx]);
-                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({xaxis: {range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX}}));                                    
-            });        
-        });             
+                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ xaxis: { range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX } }, false, false, false));
+                //update y axis min if blank
+                yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][0]);
+                //update y axis max if blank
+                yaxis_data_list["chart" + chart_idx][1] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val() == '' && mnemonicMax != -Infinity ? mnemonicMax : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][1]);
+                refreshYaxisData();
+            });
+        });
         //Dropdown menu logic
         downSignal_spacecrafts = unique(downSignal_spacecrafts);
         upSignal_spacecrafts = unique(upSignal_spacecrafts);
         target_spacecrafts = unique(target_spacecrafts);
         downSignal_mnemonics = unique(downSignal_mnemonics_map[0]);
         upSignal_mnemonics = unique(upSignal_mnemonics_map[0]);
-        target_mnemonics = unique(target_mnemonics_map[0]);        
-        $(".selectCls").each(function(i){
+        target_mnemonics = unique(target_mnemonics_map[0]);
+        $(".selectCls").each(function (i) {
             var signalTypeSel = $(this).children('.selectmenus:nth-child(1)').find('option:selected').text();
             var spacecraftDropDown = $(this).children('.selectmenus:nth-child(2)');
             var mnemonicDropDown = $(this).children('.selectmenus:nth-child(3)');
@@ -230,7 +273,7 @@
             $('<option>')
                 .val('')
                 .text('Select Mnemonic')
-                .appendTo(mnemonicDropDown);          
+                .appendTo(mnemonicDropDown);
             //add data to dropdowns if they exist
             if (signalTypeSel == 'downSignal' && downSignal_spacecrafts.length) {
                 $(downSignal_spacecrafts).each(function (i) {
@@ -244,33 +287,33 @@
                         .val(i)
                         .text(downSignal_mnemonics[i].nodeName)
                         .appendTo(mnemonicDropDown);
-                });                
+                });
             } else if (signalTypeSel == 'upSignal' && upSignal_spacecrafts.length) {
                 $(upSignal_spacecrafts).each(function (i) {
                     $('<option>')
                         .val(i)
                         .text(upSignal_spacecrafts[i])
                         .appendTo(spacecraftDropDown);
-                });    
+                });
                 $(upSignal_mnemonics).each(function (i) {
                     $('<option>')
                         .val(i)
                         .text(upSignal_mnemonics[i].nodeName)
                         .appendTo(mnemonicDropDown);
-                });                                 
+                });
             } else if (signalTypeSel == 'target' && target_spacecrafts.length) {
                 $(target_spacecrafts).each(function (i) {
                     $('<option>')
                         .val(i)
                         .text(target_spacecrafts[i])
                         .appendTo(spacecraftDropDown);
-                });   
+                });
                 $(target_mnemonics).each(function (i) {
                     $('<option>')
                         .val(i)
                         .text(target_mnemonics[i].nodeName)
                         .appendTo(mnemonicDropDown);
-                });                    
+                });
             } else if (signalTypeSel == 'Select Signal Type') {
                 $('<option>')
                     .val('')
@@ -279,7 +322,7 @@
                 $('<option>')
                     .val('')
                     .text('Awaiting signal type')
-                    .appendTo(mnemonicDropDown);                    
+                    .appendTo(mnemonicDropDown);
             } else {
                 $('<option>')
                     .val('')
@@ -288,8 +331,8 @@
                 $('<option>')
                     .val('')
                     .text('Loading...')
-                    .appendTo(mnemonicDropDown);                    
-            }   
+                    .appendTo(mnemonicDropDown);
+            }
             //Restore saved selection as well as default to CUSP if nothing selected
             if (temp_spacecraft == "Select Spacecraft") {
                 spacecraftDropDown.find("option").filter(function () { return $(this).html() == 'CUSP'; }).attr('selected', 'selected')
@@ -300,7 +343,16 @@
         })
 
     }
-    function addItem(event){
+    function refreshYaxisData() {
+        $('.chartCls').each(function (chart_idx) {
+            let Min = yaxis_data_list["chart" + chart_idx][0];
+            let Max = yaxis_data_list["chart" + chart_idx][1];
+            if (Min != '' || Max != '') {
+                ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ yaxis: { min: Min, max: Max } }));
+            }
+        });
+    }
+    function addItem(event) {
         var menuDiv = $(event.target).parent().parent();
         //Add intial selection menu
         var newSelDiv = $('<div/>')
@@ -323,32 +375,34 @@
         var newSel = $('<select/>')
             .uniqueId()
             .attr('class', 'selectmenus')
-            .appendTo(newSelDiv);           
+            .appendTo(newSelDiv);
         //remove button    
         var removeBtn = $('<button/>')
             .uniqueId()
             .html('&#128473;')
             .attr('class', 'removeBtn')
-            .appendTo(newSelDiv); 
+            .appendTo(newSelDiv);
 
-        refreshChartData();     
+        refreshChartData();
     }
     function unique(list) {
-            var result = [];
-            $.each(list, function (i, e) {
-                if ($.inArray(e, result) == -1) result.push(e);
-            });
-            return result;
-        }
+        var result = [];
+        $.each(list, function (i, e) {
+            if ($.inArray(e, result) == -1) result.push(e);
+        });
+        return result;
+    }
 </script>
+
 <body>
     <div class="headerCls">
-    <button onclick="refreshChartData();" class="refreshBtnCls" >&#x21bb;</button>
-    <div class="dataRateDivCls">
-        <label for="datarate">Set Data Rate (seconds):</label>
-        <input id="datarate" style="text-align: center;" min="1" type="number" value='1' />
-    </div>
-    <button onclick="createNewWidget();" class="newChartBtnCls"><span>Add new Chart</span></button>
+        <button onclick="refreshChartData();" class="refreshBtnCls">&#x21bb;</button>
+        <div class="dataRateDivCls">
+            <label for="datarate">Set Data Rate (seconds):</label>
+            <input id="datarate" style="text-align: center;" min="1" type="number" value='5' />
+        </div>
+        <button onclick="createNewWidget();" class="newChartBtnCls"><span>Add new Chart</span></button>
+        <button onclick="downloadData()" class="buttonCls downloadBtnCls">Download CSV</button>
     </div>
     <script>
         var intervalId;
@@ -358,7 +412,7 @@
         });
         //reset data if there is a change to the select menus
         $("body").on('change', ".selectmenus", function () {
-            var selectedSelIdx = $(this).parent().index() - 1;
+            var selectedSelIdx = $(this).parent().index() - 2;
             var selectedChartId = $(this).parent().parent().parent().attr("data-chartId");
             chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];
             refreshChartData();
@@ -366,27 +420,68 @@
         //remove select menu if X clicked
         $("body").on('click', ".removeBtn", function () {
             var selectedSel = $(this).parent()
-            var selectedSelIdx = selectedSel.index() - 1;
+            var selectedSelIdx = selectedSel.index() - 2;
             var selectedChartId = selectedSel.parent().parent().attr("data-chartId");
-            chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];            
+            chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];
             var selectedSel = selectedSel.remove();
             refreshChartData();
-        });   
-        function startInterval(_interval){
-            intervalId = window.setInterval(function () {
-                refreshChartData();
-            }, _interval);
-            refreshChartData();
-        }
-        startInterval(1000);
+        });
+        //set Yaxis on chart
+        $("body").on('change', ".yaxisInputCls", function () {
+            var curVal = Number($(this).val());
+            var selectedChartId = $(this).parent().parent().parent().attr("data-chartId");
+            yaxis_data_list[selectedChartId][$(this).index()] = curVal;
+            refreshYaxisData();
+        });
 
         $('#datarate').on('change', function () {
             // clear the existing interval
             clearInterval(intervalId);
             // just start a new one
-            startInterval($('#datarate').val()*1000);
-        })        
+            startInterval($('#datarate').val() * 1000);
+        })
 
+        function downloadData() {
+            try {
+                $('.chartCls').each(function (chart_idx) {
+                    $(chart_data_list['chart' + chart_idx]).each(function (item_idx) {
+                        const csvString = [
+                            [
+                                "data:text/csv;charset=utf-8,"
+                            ],
+                            [
+                                "Timestamp",
+                                chart_data_list['chart' + chart_idx][item_idx]['name']
+                            ],
+                            ...chart_data_list['chart' + chart_idx][item_idx]['data'].map(item => [
+                                new Date(item.x).toISOString(),
+                                item.y
+                            ])
+                        ]
+                            .map(e => e.join(","))
+                            .join("\n");
+                        var encodedUri = encodeURI(csvString);
+                        var link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", 'chart_' + chart_idx + "__item_" + chart_data_list['chart' + chart_idx][item_idx]['name'] + ".csv");
+                        document.body.appendChild(link);
+                        link.click();
+                    });
+                });
+            } catch {
+                console.log('There was an issue downloading the data.');
+            }
+        }
+
+
+        function startInterval(_interval) {
+            intervalId = window.setInterval(function () {
+                refreshChartData();
+            }, _interval);
+            refreshChartData();
+        }
+        startInterval(5000);
     </script>
 </body>
+
 </html>
