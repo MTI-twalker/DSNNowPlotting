@@ -25,6 +25,10 @@
     border: 1px solid black;
     width: 100%;
 }
+.buttonDivCls {
+    width: 10%;
+    display: inline-block;
+}
 .buttonCls {
     background-color: #4CAF50;
     border: none;
@@ -34,6 +38,17 @@
     text-decoration: none;
     display: inline-block;
     font-size: 16px;    
+}
+.downloadBtnCls{
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+}
+.yaxisDivCls {
+    width: 10%;
+    display: inline-block;
+    right: calc( 30% - 100% );
+    position: relative; 
 }
 .refreshBtnCls {
     font-family: Lucida Sans Unicode;
