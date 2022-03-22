@@ -82,7 +82,7 @@
                 curve: 'smooth'
             },
             title: {
-                text: 'DSN Power Chart',
+                text: 'DSN Data Chart',
                 align: 'left'
             },
             markers: {
@@ -181,6 +181,7 @@
                 let chart_range = 0;
                 let mnemonicMin = '';
                 let mnemonicMax = '';
+                let dataName = '';
                 $(this).parent().find('.selectCls').each(function (select_div_idx) {
                     var curSelectDiv = $(this);
                     chart_data = chart_data_list["chart" + chart_idx][select_div_idx] ? chart_data_list["chart" + chart_idx][select_div_idx]['data'] : [];
@@ -190,13 +191,13 @@
                             var dishTag = $(this)[0];
                             $(dishTag.children).each(function (dish_idx) {
                                 //get menu data
-                                if (dishTag.children[dish_idx].tagName == 'downSignal') {
+                                if (dishTag.children[dish_idx].tagName == 'downSignal' && dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value != '' && dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value != 'TEST') {
                                     downSignal_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value);
                                     if (downSignal_mnemonics_map.length < 2) downSignal_mnemonics_map.push(dishTag.children[dish_idx].attributes);
-                                } else if (dishTag.children[dish_idx].tagName == 'upSignal') {
+                                } else if (dishTag.children[dish_idx].tagName == 'upSignal' && dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value != '' && dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value != 'TEST') {
                                     upSignal_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value)
                                     if (upSignal_mnemonics_map.length < 2) upSignal_mnemonics_map.push(dishTag.children[dish_idx].attributes);
-                                } else if (dishTag.children[dish_idx].tagName == 'target') {
+                                } else if (dishTag.children[dish_idx].tagName == 'target' && dishTag.children[dish_idx].attributes.getNamedItem('name').value != '' && dishTag.children[dish_idx].attributes.getNamedItem('name').value != 'TEST') {
                                     target_spacecrafts.push(dishTag.children[dish_idx].attributes.getNamedItem('name').value)
                                     if (target_mnemonics_map.length < 2) target_mnemonics_map.push(dishTag.children[dish_idx].attributes);
                                 }
@@ -208,6 +209,7 @@
                                                 x: newDate,
                                                 y: dishTag.children[dish_idx].attributes.getNamedItem(curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()).value
                                             })
+                                            dataName = curSelectDiv.children('.selectmenus:nth-child(1)').find('option:selected').text() + ':' + curSelectDiv.children('.selectmenus:nth-child(2)').find('option:selected').text() + ":" + curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text() + ":" + dishTag.children[dish_idx].attributes.getNamedItem('signalTypeDebug').value
                                         }
                                     } else if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'target')) {
                                         if (dishTag.children[dish_idx].attributes.getNamedItem('name').value == curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()) {
@@ -215,6 +217,7 @@
                                                 x: newDate,
                                                 y: dishTag.children[dish_idx].attributes.getNamedItem(curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()).value
                                             })
+                                            dataName = curSelectDiv.children('.selectmenus:nth-child(1)').find('option:selected').text() + ':' + curSelectDiv.children('.selectmenus:nth-child(2)').find('option:selected').text() + ":" + curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text()
                                         }
                                     }
                                 } catch (error) {
@@ -232,7 +235,7 @@
                     chart_range = cur_range > chart_range ? cur_range : chart_range
                     //update chart data list
                     chart_data_list["chart" + chart_idx][select_div_idx] = {
-                        name: curSelectDiv.children('.selectmenus:nth-child(1)').find('option:selected').text() + ':' + curSelectDiv.children('.selectmenus:nth-child(2)').find('option:selected').text() + ":" + curSelectDiv.children('.selectmenus:nth-child(3)').find('option:selected').text(), //signal type, spacescraft, mnemonic selected
+                        name: dataName, //signal type, spacescraft, mnemonic selected , signalTypeDebug (if not target)
                         type: 'line',
                         data: chart_data
                     }
@@ -247,7 +250,7 @@
                 $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][1]);
                 refreshYaxisData();
             });
-        });
+        });   
         //Dropdown menu logic
         downSignal_spacecrafts = unique(downSignal_spacecrafts);
         upSignal_spacecrafts = unique(upSignal_spacecrafts);

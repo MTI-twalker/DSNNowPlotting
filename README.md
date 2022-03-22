@@ -51,9 +51,3 @@
 
 ### Separating by dish
     The data should be separated by dish
-
-### signalTypeDebug
-    The signalTypeDebug field seems to have 4 separate status indicators. It would be very helpful to have the first couple displayed. 
-
-### Filter options
-    The values of an empty string and TEST from the dropdown menu options of spacecraft/target name should be filtered out.
