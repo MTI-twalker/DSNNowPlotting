@@ -425,7 +425,7 @@
             var selectedSel = $(this).parent()
             var selectedSelIdx = selectedSel.index() - 2;
             var selectedChartId = selectedSel.parent().parent().attr("data-chartId");
-            chart_data_list[selectedChartId][selectedSelIdx]['data'] = [];
+            chart_data_list[selectedChartId].splice(selectedSelIdx,1);
             var selectedSel = selectedSel.remove();
             refreshChartData();
         });
