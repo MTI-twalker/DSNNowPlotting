@@ -15,7 +15,7 @@
 
 ### Page Header
 **Refreshing data**: 
-    Press the refresh button on the top left
+    Press the refresh button on the top left to add current data to chart.
 
 **Add new chart**: 
     Press the "Add new chart" button to add a new chart to the page. By default 1 chart will be pre-loaded.
