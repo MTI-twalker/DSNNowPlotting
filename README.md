@@ -37,6 +37,9 @@
 **Mnemonic**: 
     This is a unique list of attribute values within the selected signal type data sets. 
 
+**Dish**:
+    This is a unique list of Dishes that contain the SpaceCraft selected within that selection line. If there is only a single dish that returns, that dish will be auto selected to start populating the chart.
+
 #### Saving Data
 
     Pressing the "Download CSV" at the bottom right will loop through each item on each chart and create a CSV file with the data as an ISO string and mnemonic value listed in csv format.
@@ -49,5 +52,4 @@
 
 ## On-going effort
 
-### Separating by dish
-    The data should be separated by dish
+### Awaiting Feedback
