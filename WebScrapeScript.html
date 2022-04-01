@@ -244,6 +244,9 @@
                     chart_data = chart_data.length > 0 ? chart_data.filter(x => (x['x'] > chart_data[chart_data.length - 1]['x'] - XAXISMAX)) : [];
                     date_data = chart_data.map(({ x }) => x);
                     mnemonic_data = chart_data.map(({ y }) => y);
+                    mnemonic_data.filter(function (el) {
+                        return el != null;
+                    });
                     mnemonicMin = mnemonicMin == '' ? Math.min(...mnemonic_data) : Math.min(...mnemonic_data) < mnemonicMin ? Math.min(...mnemonic_data) : mnemonicMin;
                     mnemonicMax = mnemonicMax == '' ? Math.max(...mnemonic_data) : Math.max(...mnemonic_data) > mnemonicMax ? Math.max(...mnemonic_data) : mnemonicMax;
                     cur_range = chart_data.length > 0 ? (Math.max(...date_data) - Math.min(...date_data)) > 60000 ? (Math.floor(Math.max(...date_data) - Math.min(...date_data)) / 60000) : 1 : 1;
