@@ -261,11 +261,11 @@
                 ApexCharts.exec("chart" + chart_idx, 'updateSeries', chart_data_list["chart" + chart_idx]);
                 ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ xaxis: { range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX } }));
                 //update y axis min if blank
-                yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val());
-                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][0]);
+                yaxis_data_list["chart" + chart_idx][1] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][1]);
                 //update y axis max if blank
-                yaxis_data_list["chart" + chart_idx][1] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMax != -Infinity ? mnemonicMax : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
-                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][1]);
+                yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMax != -Infinity ? mnemonicMax : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][0]);
                 refreshYaxisData();
             });
         });   
@@ -398,8 +398,8 @@
     }
     function refreshYaxisData() {
         $('.chartCls').each(function (chart_idx) {
-            let Min = yaxis_data_list["chart" + chart_idx][0];
-            let Max = yaxis_data_list["chart" + chart_idx][1];
+            let Min = yaxis_data_list["chart" + chart_idx][1];
+            let Max = yaxis_data_list["chart" + chart_idx][0];
             if (Min != '' || Max != '') {
                 ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ yaxis: { min: Min, max: Max } }));
             }
