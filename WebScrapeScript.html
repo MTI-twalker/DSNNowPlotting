@@ -245,7 +245,7 @@
                     date_data = chart_data.map(({ x }) => x);
                     mnemonic_data = chart_data.map(({ y }) => y);
                     mnemonic_data.filter(function (el) {
-                        return el != null;
+                        return el != "";
                     });
                     mnemonicMin = mnemonicMin == '' ? Math.min(...mnemonic_data) : Math.min(...mnemonic_data) < mnemonicMin ? Math.min(...mnemonic_data) : mnemonicMin;
                     mnemonicMax = mnemonicMax == '' ? Math.max(...mnemonic_data) : Math.max(...mnemonic_data) > mnemonicMax ? Math.max(...mnemonic_data) : mnemonicMax;
