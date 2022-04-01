@@ -124,16 +124,16 @@
             .uniqueId()
             .attr('class', 'yaxisDivCls')
             .appendTo(newMenuDiv);
-        var newYaxisMin = $('<input/>')
-            .uniqueId()
-            .attr('type', 'number')
-            .attr('placeholder', 'Y-axis Min')
-            .attr('class', 'yaxisInputCls')
-            .appendTo(newYaxisDiv);
         var newYaxisMax = $('<input/>')
             .uniqueId()
             .attr('type', 'number')
             .attr('placeholder', 'Y-axis Max')
+            .attr('class', 'yaxisInputCls')
+            .appendTo(newYaxisDiv);
+        var newYaxisMin = $('<input/>')
+            .uniqueId()
+            .attr('type', 'number')
+            .attr('placeholder', 'Y-axis Min')
             .attr('class', 'yaxisInputCls')
             .appendTo(newYaxisDiv);
         //Add intial selection menu
@@ -189,7 +189,6 @@
                 let mnemonicMax = '';
                 let dataName = '';
                 $(this).parent().find('.selectCls').each(function (select_div_idx) {
-                    dishes[select_div_idx] = [];
                     var curSelectDiv = $(this);
                     chart_data = chart_data_list["chart" + chart_idx][select_div_idx] ? chart_data_list["chart" + chart_idx][select_div_idx]['data'] : [];
                     //each selectCls has 3 select elements of [signal type, spacecraft, mnemonic]
@@ -212,7 +211,8 @@
                                 try {
                                     if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'downSignal' || dishTag.children[dish_idx].tagName == 'upSignal')) {
                                         if (dishTag.children[dish_idx].attributes.getNamedItem('spacecraft').value == curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()) {
-                                            dishes[select_div_idx].push(dishTag.attributes.getNamedItem("name").value);
+                                            if (!(curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text() in dishes)) dishes[curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()] = [];
+                                            dishes[curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()].push(dishTag.attributes.getNamedItem("name").value);
                                             if (dishTag.attributes.getNamedItem("name").value == curSelectDiv.children('.selectmenus:nth-child(4)').find("option:selected").text()) {                              
                                                 chart_data.push({
                                                     x: newDate,
@@ -224,7 +224,8 @@
                                     } else if ((dishTag.children[dish_idx].tagName == curSelectDiv.children('.selectmenus:nth-child(1)').find("option:selected").text()) && (dishTag.children[dish_idx].tagName == 'target')) {
                                                         
                                         if (dishTag.children[dish_idx].attributes.getNamedItem('name').value == curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()) {
-                                            dishes[select_div_idx].push(dishTag.attributes.getNamedItem("name").value);
+                                            if (!(curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text() in dishes)) dishes[curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()] = [];
+                                            dishes[curSelectDiv.children('.selectmenus:nth-child(2)').find("option:selected").text()].push(dishTag.attributes.getNamedItem("name").value);
                                             if (dishTag.attributes.getNamedItem("name").value == curSelectDiv.children('.selectmenus:nth-child(4)').find("option:selected").text()) {                            
                                                 chart_data.push({
                                                     x: newDate,
@@ -257,11 +258,11 @@
                 ApexCharts.exec("chart" + chart_idx, 'updateSeries', chart_data_list["chart" + chart_idx]);
                 ApexCharts.exec("chart" + chart_idx, 'updateOptions', ({ xaxis: { range: XAXISRANGE * chart_range < XAXISMAX ? XAXISRANGE * chart_range : XAXISMAX } }));
                 //update y axis min if blank
-                yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
-                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][0]);
+                yaxis_data_list["chart" + chart_idx][0] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val() == '' && mnemonicMin != Infinity ? mnemonicMin : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Min: ' + yaxis_data_list["chart" + chart_idx][0]);
                 //update y axis max if blank
-                yaxis_data_list["chart" + chart_idx][1] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val() == '' && mnemonicMax != -Infinity ? mnemonicMax : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').val());
-                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(2)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][1]);
+                yaxis_data_list["chart" + chart_idx][1] = $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val() == '' && mnemonicMax != -Infinity ? mnemonicMax : Number($(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').val());
+                $(this).parent().find('.yaxisDivCls').children('.yaxisInputCls:nth-child(1)').attr('placeholder', 'Y Max: ' + yaxis_data_list["chart" + chart_idx][1]);
                 refreshYaxisData();
             });
         });   
@@ -273,7 +274,6 @@
         upSignal_mnemonics = unique(upSignal_mnemonics_map[0]);
         target_mnemonics = unique(target_mnemonics_map[0]);
         $(".selectCls").each(function (select_div_idx) {
-            dishes[select_div_idx] = unique(dishes[select_div_idx]);
             var signalTypeSel = $(this).children('.selectmenus:nth-child(1)').find('option:selected').text();
             var spacecraftDropDown = $(this).children('.selectmenus:nth-child(2)');
             var mnemonicDropDown = $(this).children('.selectmenus:nth-child(3)');
@@ -282,6 +282,7 @@
             var temp_spacecraft = spacecraftDropDown.find('option:selected').text();
             var temp_mnemonic = mnemonicDropDown.find('option:selected').text();
             var temp_dish = dishSel.find('option:selected').text();
+            dishes[temp_spacecraft] = unique(dishes[temp_spacecraft]);
             //remove all options
             spacecraftDropDown.find('option').remove();
             mnemonicDropDown.find('option').remove();
@@ -362,11 +363,11 @@
                     .text('Loading...')
                     .appendTo(mnemonicDropDown);
             }
-            if (dishes[select_div_idx].length) {
-                $(dishes[select_div_idx]).each(function (i) {
+            if (dishes[temp_spacecraft].length) {
+                $(dishes[temp_spacecraft]).each(function (i) {
                     $('<option>')
                         .val(i)
-                        .text(dishes[select_div_idx][i])
+                        .text(dishes[temp_spacecraft][i])
                         .appendTo(dishSel);
                 });
             } 
@@ -383,8 +384,8 @@
                 spacecraftDropDown.find("option").filter(function () { return $(this).html() == temp_spacecraft; }).attr('selected', 'selected');
             }
             mnemonicDropDown.find("option").filter(function () { return $(this).html() == temp_mnemonic; }).attr('selected', 'selected');
-            if (temp_dish == "Select Dish" && dishes[select_div_idx].length == 1){
-                dishSel.find("option").filter(function () { return $(this).html() == dishes[select_div_idx][0]; }).attr('selected', 'selected');
+            if (temp_dish == "Select Dish" && dishes[temp_spacecraft].length == 1){
+                dishSel.find("option").filter(function () { return $(this).html() == dishes[temp_spacecraft][0]; }).attr('selected', 'selected');
             }
             else {
                 dishSel.find("option").filter(function () { return $(this).html() == temp_dish; }).attr('selected', 'selected');
@@ -436,7 +437,13 @@
             .html('&#128473;')
             .attr('class', 'removeBtn')
             .appendTo(newSelDiv);
-
+        if (!(menuDiv.children('.selectCls').first().find('.removeBtn').length)) {
+            var removeBtn = $('<button/>')
+                .uniqueId()
+                .html('&#128473;')
+                .attr('class', 'removeBtn')
+                .appendTo(menuDiv.children('.selectCls').first());
+        }
         refreshChartData();
     }
     function unique(list) {
@@ -473,11 +480,15 @@
         });
         //remove select menu if X clicked
         $("body").on('click', ".removeBtn", function () {
-            var selectedSel = $(this).parent()
+            var selectedSel = $(this).parent();
+            var menuSel = selectedSel.parent();
             var selectedSelIdx = selectedSel.index() - 2;
             var selectedChartId = selectedSel.parent().parent().attr("data-chartId");
             chart_data_list[selectedChartId].splice(selectedSelIdx,1);
             var selectedSel = selectedSel.remove();
+            if (menuSel.children('.selectCls').length == 1) {
+                menuSel.children('.selectCls').first().children('.removeBtn').remove();
+            }
             refreshChartData();
         });
         //set Yaxis on chart
